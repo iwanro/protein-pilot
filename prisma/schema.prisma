@@ -1,0 +1,133 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  userProfile     UserProfile?
+  dailyLogs       DailyLog[]
+  mealPlans       MealPlan[]
+  foodPreferences FoodPreference[]
+}
+
+model UserProfile {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  dailyProteinGoal Int      @default(150)  // Daily protein goal in grams
+  weight           Float?   // Weight in kg
+  height           Float?   // Height in cm
+  age              Int?     // Age in years
+  activityLevel    String?  // 'sedentary', 'light', 'moderate', 'active', 'very_active'
+  fitnessGoal      String?  // 'weight_loss', 'muscle_gain', 'maintenance', 'endurance'
+  dietaryRestrictions String?  // JSON string array of dietary restrictions
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model DailyLog {
+  id        String   @id @default(cuid())
+  date      DateTime @unique
+  totalProtein Int   @default(0)
+  totalCalories Int @default(0)
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meals     Meal[]
+}
+
+model Meal {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  protein     Float    // Protein in grams
+  calories    Float    // Calories
+  carbs       Float?   // Carbohydrates in grams
+  fats        Float?   // Fats in grams
+  imageUrl    String?  // URL of the food photo
+  mealType    String   // 'breakfast', 'lunch', 'dinner', 'snack'
+  analysisConfidence Float? // AI confidence score (0-100)
+  dailyLogId  String
+  createdAt   DateTime @default(now())
+  
+  dailyLog    DailyLog @relation(fields: [dailyLogId], references: [id], onDelete: Cascade)
+  suggestions MealSuggestion[]
+}
+
+model MealPlan {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  targetProtein Int    @default(150)
+  targetCalories Int   @default(2000)
+  isActive    Boolean  @default(false)
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planMeals   PlanMeal[]
+}
+
+model PlanMeal {
+  id          String   @id @default(cuid())
+  name        String
+  protein     Float
+  calories    Float
+  mealType    String   // 'breakfast', 'lunch', 'dinner', 'snack'
+  mealPlanId  String
+  createdAt   DateTime @default(now())
+  
+  mealPlan    MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+}
+
+model FoodPreference {
+  id           String   @id @default(cuid())
+  foodName     String
+  preference   String   // 'like', 'dislike', 'allergic', 'avoid'
+  category     String?  // Food category (e.g., 'protein_source', 'vegetable', 'grain')
+  userId       String
+  createdAt    DateTime @default(now())
+  
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model MealSuggestion {
+  id           String   @id @default(cuid())
+  suggestion   String   // AI-generated suggestion text
+  type         String   // 'protein_boost', 'alternative', 'complement'
+  confidence   Float?   // AI confidence in this suggestion
+  mealId       String
+  createdAt    DateTime @default(now())
+  
+  meal         Meal     @relation(fields: [mealId], references: [id], onDelete: Cascade)
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  title     String
+  content   String?
+  published Boolean  @default(false)
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
